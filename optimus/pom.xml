@@ -13,4 +13,11 @@
 	<groupId>taskworker.workers</groupId>
 	<artifactId>optimus</artifactId>
 
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>1.3.2</version>
+		</dependency>
+	</dependencies>
 </project>
