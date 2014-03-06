@@ -45,20 +45,9 @@ import drm.taskworker.tasks.TaskResult;
 import drm.taskworker.tasks.ValueRef;
 
 /**
- * The optimus worker coordinates the execution of a computational command. The
- * worker always requires a 'command' to be an argument.
+ * The optimus worker!
  * 
- * Parameters:
  * 
- * @param: command The command to execute
- * @param: a The start value of the interval
- * @param: b The end value of the interval
- * @param: d The distance between a and b that indicates we can stop searching
- * 
- *         The number of tasks required to search is determined as following n =
- *         int(abs(a-b)/d)
- * 
- * @author Bart Vanbrabant <bart.vanbrabant@cs.kuleuven.be>
  */
 public class OptimusWorker2 extends Worker {
 
@@ -77,14 +66,14 @@ public class OptimusWorker2 extends Worker {
 	@SuppressWarnings("unchecked")
 	public TaskResult work(Task task) {
 		try {
-			String type = (String) task.getParam("type");
+			String type = (String) task.getParam("PRM_TYPE");
 
 			switch (type) {
 			case TYPE_START:
 				return start(task, (byte[]) task.getParam(PRM_START_FILE),
 						(String) task.getParam(PRM_START_METHOD));
 			case TYPE_STEP:
-				return step(task, (List<ValueRef>) task.getParam("result"),(List<ValueRef>) task.getParam("name"));
+				return step(task, (List<ValueRef>) task.getParam("output"),(List<ValueRef>) task.getParam("name"));
 			case TYPE_STOP:
 				return stop(task);
 			}
@@ -187,7 +176,7 @@ public class OptimusWorker2 extends Worker {
 		Task out = new Task(task, "execute");
 		out.addParam("command", command);
 		out.addParam("input", outputData);
-		out.addParam("output", outputfile);
+		out.addParam("name", outputfile);
 		
 		return task;
 	}
