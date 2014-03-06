@@ -1,0 +1,38 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+from argparse import ArgumentParser
+
+import os
+
+
+def main():
+    parser = ArgumentParser()
+
+    parser.add_argument("-r", "--run-file", dest="runfile", help="The runfile", required = True)
+    parser.add_argument("-c", "--command", dest="command", help="The command to run", required =
+            True)
+    parser.add_argument("-i", "--input-files", dest="input", help="A list of input files", default =
+            "")
+    parser.add_argument("-o", "--output-files", dest="output", help="A list of output files",
+            default = "")
+
+    options, other = parser.parse_known_args()
+
+    fd = None
+    try:
+        if not os.path.exists(options.runfile):
+            fd = open(options.runfile, "w+")
+
+        else:
+            fd = open(options.runfile, "a+")
+
+        fd.seek(0, 2)
+        fd.write("%s|%s|%s\n" % (options.command, options.input, options.output))
+
+    finally:
+        if fd is not None and not fd.closed:
+            fd.close()
+
+if __name__ == "__main__":
+    main()
