@@ -21,7 +21,9 @@ package drm.taskworker.workers;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVReader;
 import drm.taskworker.Worker;
@@ -57,17 +59,32 @@ public class CSVtoTaskWorker extends Worker {
 			CSVReader parser = new CSVReader(new StringReader(csv_data), ';');
 			List<String[]> rows = parser.readAll();
 			String[] headers = rows.get(0);
+			int batchSize = 1;
+			try{ 
+				batchSize = Integer.valueOf(task.getJobOption("batch.size"));
+			} catch(Exception e) {
+				// keep batchSize == 1
+			}
 
 			logger.info(String.format("Parsed %d records in CSV", rows.size() - 1));
-			for (int i = 1; i < rows.size(); i++) {
-				String[] row = rows.get(i);
+			int batchNb = 1;
+			for (int i = 1; i < rows.size(); i = i+batchSize) {
+				
 				Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
-
-				for (int j = 0; j < row.length; j++) {
-					newTask.addParam(headers[j], row[j]);
+				
+				for(int d = 0; (d < batchSize && i+d < rows.size()); d++) {
+					String[] row = rows.get(i+d);
+					
+					Map<String, String> document = new HashMap<String, String>();
+					for (int r = 0; r < row.length; r++) {
+						document.put(headers[r], row[r]);
+					}
+					newTask.addParam("Doc#"+d, document);
 				}
+				newTask.addParam("BatchNb", batchNb);
 				
 				result.addNextTask(newTask);
+				batchNb++;
 			}
 			parser.close();
 			

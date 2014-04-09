@@ -53,49 +53,68 @@ public class XslFoRenderWorker extends Worker {
 	@Override
 	public TaskResult work(Task task) {
 		TaskResult result = new TaskResult();
-		String invoice_source = null;
-		
-		try {
-			invoice_source = (String) task.getParam("arg0");
-		} catch (ParameterFoundException e) {
-			return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-		}
 
-		try {
-			TransformerFactory tFactory = TransformerFactory.newInstance();
-			FopFactory fopFactory = FopFactory.newInstance();
+		Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
 
-			// Load the stylesheet
-			Templates templates = tFactory.newTemplates(new StreamSource(
-					new StringReader(invoice_source)));
+		for(String tag : task.getParamNames()) {
+			if(tag != null && tag.startsWith("Doc#")) {
 
-			// Second run (the real thing)
-			ByteArrayOutputStream boas = new ByteArrayOutputStream();
-			OutputStream out = new java.io.BufferedOutputStream(boas);
-			try {
-				FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-				foUserAgent.setURIResolver(new ClassPathURIResolver());
-				Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF,
-						foUserAgent, out);
+				String invoice_source = null;
 
-				Transformer transformer = templates.newTransformer();
-				transformer.transform(new StreamSource(new StringReader(
-						"<invoice></invoice>")),
-						new SAXResult(fop.getDefaultHandler()));
+				try {
+					invoice_source = (String) task.getParam(tag);
+				} catch(ParameterFoundException e) {
+					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
+				}
 
-			} finally {
-				out.close();
+				try {
+					TransformerFactory tFactory = TransformerFactory
+							.newInstance();
+					FopFactory fopFactory = FopFactory.newInstance();
+
+					// Load the stylesheet
+					Templates templates = tFactory
+							.newTemplates(new StreamSource(new StringReader(
+									invoice_source)));
+
+					// Second run (the real thing)
+					ByteArrayOutputStream boas = new ByteArrayOutputStream();
+					OutputStream out = new java.io.BufferedOutputStream(boas);
+					try {
+						FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
+						foUserAgent.setURIResolver(new ClassPathURIResolver());
+						Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF,
+								foUserAgent, out);
+
+						Transformer transformer = templates.newTransformer();
+						transformer.transform(new StreamSource(
+								new StringReader("<invoice></invoice>")),
+								new SAXResult(fop.getDefaultHandler()));
+
+					} finally {
+						out.close();
+					}
+
+					// store the fileData
+
+					newTask.addParam(tag, boas.toByteArray());
+				} catch(Exception e) {
+					result.setResult(TaskResult.Result.EXCEPTION);
+					result.setException(e);
+					return result;
+				}
+			} else if(tag != null && tag.equals("BatchNb")) {
+				try {
+					newTask.addParam("BatchNb", task.getParam("BatchNb"));
+				} catch(ParameterFoundException e) {
+					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
+				}
 			}
-
-			// store the fileData
-			Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
-			newTask.addParam("arg0", boas.toByteArray());
-			result.addNextTask(newTask);
-			result.setResult(TaskResult.Result.SUCCESS);
-		} catch (Exception e) {
-			result.setResult(TaskResult.Result.EXCEPTION);
-			result.setException(e);
 		}
+
+		result.addNextTask(newTask);
+		result.setResult(TaskResult.Result.SUCCESS);
+
 		return result;
 	}
 }

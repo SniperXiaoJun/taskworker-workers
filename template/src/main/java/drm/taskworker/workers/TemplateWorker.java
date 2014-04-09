@@ -22,6 +22,7 @@ package drm.taskworker.workers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.Map;
 
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
@@ -60,26 +61,38 @@ public class TemplateWorker extends Worker {
                 throw new IOException("Template file doesn't exist");
             }
 
-            VelocityContext context = new VelocityContext();
-
-            for (String name: task.getParamNames()) {
-				context.put(name, task.getParam(name));
-			}
-
-            Template template = ve.getTemplate(templatePath, "UTF-8");
+            Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
+            // FIXME should this writer be in the loop and be closed there or can it be reused?
+            StringWriter writer = new StringWriter();
+            for(String tag: task.getParamNames()) {
+            	if(tag != null && tag.startsWith("Doc#")) {
+            		Map<String, String> doc = (Map<String, String>) task.getParam(tag);
+            		
+            		VelocityContext context = new VelocityContext();
+            		for (String header: doc.keySet()) {
+        				context.put(header, doc.get(header));
+        			}
+            		
+            		Template template = ve.getTemplate(templatePath, "UTF-8");
+                    
+        			
+        			template.merge(context, writer);
+        			writer.flush();
+        			
+        			newTask.addParam(tag, writer.toString());
+            	} else if(tag != null && tag.equals("BatchNb")) {
+            		newTask.addParam("BatchNb", task.getParam("BatchNb"));
+            	}
+            }
             
-			StringWriter writer = new StringWriter();
-			template.merge(context, writer);
-			writer.flush();
-			
-			Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
-			newTask.addParam("arg0", writer.toString());
-			result.addNextTask(newTask);
-			
-			result.setResult(TaskResult.Result.SUCCESS);
+            result.addNextTask(newTask);
+            result.setResult(TaskResult.Result.SUCCESS);
             writer.close();
+			
 		} catch (Exception e) {
-			e.printStackTrace();
+			result.setResult(TaskResult.Result.EXCEPTION);
+			result.setException(e);
+			return result;
 		}
 		
 		return result;

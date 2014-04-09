@@ -48,7 +48,7 @@ public class JoinWorker extends Worker {
 			Logger.getLogger(JoinWorker.class.getCanonicalName());
 
 	/**
-	 * Creates a new work with the name blob-to-cache
+	 * Creates a new worker
 	 */
 	public JoinWorker(String workerName) {
 		super(workerName);

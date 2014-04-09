@@ -39,6 +39,7 @@ import drm.taskworker.tasks.ValueRef;
  * @author Bart Vanbrabant <bart.vanbrabant@cs.kuleuven.be>
  */
 public class ZipWorker extends Worker {
+	
 	/**
 	 * Creates a new work with the name blob-to-cache
 	 */
@@ -49,44 +50,34 @@ public class ZipWorker extends Worker {
 	/**
 	 * Zip all files
 	 */
-	@SuppressWarnings("unchecked")
 	public TaskResult work(Task task) {
 		TaskResult result = new TaskResult();
-		List<ValueRef> data = null;
 		
 		try {
-			data = (List<ValueRef>) task.getParam("arg0");
-		} catch (ParameterFoundException e) {
-			return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-
+		
+		// create the zip stream
+		ByteArrayOutputStream boas = new ByteArrayOutputStream();
+		ZipOutputStream out = new ZipOutputStream(boas);
+		
+		for(String tag : task.getParamNames()) {
+			if(tag != null && tag.startsWith("Doc#")) {
+				zip(out, task, tag);
+			} else if(tag != null && tag.equals("arg0")) {
+				zip(out, task, tag);
+				break;
+			}
 		}
 		
-		try {
-			if (data.size() == 0) {
-				logger.warning("empty zip file");
-			}
-			
-			// create the zip stream
-			ByteArrayOutputStream boas = new ByteArrayOutputStream();
-			ZipOutputStream out = new ZipOutputStream(boas);
-
-			// save the files in the zip
-			int i = 0;
-			for (ValueRef ref : data) {
-				
-				out.putNextEntry(new ZipEntry(++i + ".pdf"));
-				byte[] pdfData = (byte[])ref.getValue();
-				out.write(pdfData);
-			}
-			out.close();
-			boas.flush();
-			
-			byte[] zipData = boas.toByteArray();
-			boas.close();
-			
-			Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
-			newTask.addParam("arg0", zipData);
-			result.addNextTask(newTask);
+		out.close();
+		boas.flush();
+		
+		byte[] zipData = boas.toByteArray();
+		boas.close();
+		
+		Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
+		newTask.addParam("arg0", zipData);
+		result.addNextTask(newTask);
+		
 		} catch (FileNotFoundException e) {
 			result.setResult(TaskResult.Result.EXCEPTION);
 			result.setException(e);
@@ -99,5 +90,28 @@ public class ZipWorker extends Worker {
 		}
 
 		return result.setResult(TaskResult.Result.SUCCESS);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void zip(ZipOutputStream zipOut, Task task, String tag) throws ParameterFoundException, IOException {
+		List<ValueRef> data = null;
+		
+		data = (List<ValueRef>) task.getParam(tag);
+		
+		if (data.size() == 0) {
+			logger.warning("empty zip file");
+		}
+			
+		// create the zip stream
+		ByteArrayOutputStream boas = new ByteArrayOutputStream();
+		ZipOutputStream out = new ZipOutputStream(boas);
+
+		// save the files in the zip
+		int i = 0;
+		for (ValueRef ref : data) {
+			out.putNextEntry(new ZipEntry(++i + ".pdf"));
+			byte[] pdfData = (byte[])ref.getValue();
+			out.write(pdfData);
+		}
 	}
 }
