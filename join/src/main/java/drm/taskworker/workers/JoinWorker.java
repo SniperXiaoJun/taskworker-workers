@@ -31,7 +31,6 @@ import drm.taskworker.Worker;
 import drm.taskworker.tasks.ParameterFoundException;
 import drm.taskworker.tasks.Task;
 import drm.taskworker.tasks.TaskResult;
-import drm.taskworker.tasks.ValueRef;
 
 /**
  * A generic worker that joins a workflow by collecting all tasks of a workflow
@@ -72,8 +71,8 @@ public class JoinWorker extends Worker {
 				
 				// copy over parameters
 				for (String paramName : task.getParamNames()) {
-					List<ValueRef> arg = new ArrayList<ValueRef>();
-					arg.add((ValueRef) task.getParam(paramName));
+					List<Object> arg = new ArrayList<Object>();
+					arg.add(task.getParam(paramName));
 					newTask.addParam(paramName, task.getParam(paramName));
 				}
 				
