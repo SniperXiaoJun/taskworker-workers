@@ -63,9 +63,10 @@ public class TemplateWorker extends Worker {
 
             Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
             // FIXME should this writer be in the loop and be closed there or can it be reused?
-            StringWriter writer = new StringWriter();
             for(String tag: task.getParamNames()) {
             	if(tag != null && tag.startsWith("Doc#")) {
+            		StringWriter writer = new StringWriter();
+            		
             		Map<String, String> doc = (Map<String, String>) task.getParam(tag);
             		
             		VelocityContext context = new VelocityContext();
@@ -80,15 +81,15 @@ public class TemplateWorker extends Worker {
         			writer.flush();
         			
         			newTask.addParam(tag, writer.toString());
+        			
+        			writer.close();
             	} else if(tag != null && tag.equals("BatchNb")) {
             		newTask.addParam("BatchNb", task.getParam("BatchNb"));
             	}
             }
             
             result.addNextTask(newTask);
-            result.setResult(TaskResult.Result.SUCCESS);
-            writer.close();
-			
+            result.setResult(TaskResult.Result.SUCCESS);			
 		} catch (Exception e) {
 			result.setResult(TaskResult.Result.EXCEPTION);
 			result.setException(e);
