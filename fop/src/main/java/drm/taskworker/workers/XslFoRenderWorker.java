@@ -98,7 +98,7 @@ public class XslFoRenderWorker extends Worker {
 					// store the fileData
 
 					newTask.addParam(tag, boas.toByteArray());
-					boas.close();
+//					boas.close();
 				} catch(Exception e) {
 					result.setResult(TaskResult.Result.EXCEPTION);
 					result.setException(e);
