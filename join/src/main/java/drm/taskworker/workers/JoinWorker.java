@@ -72,8 +72,8 @@ public class JoinWorker extends Worker {
 				
 				// copy over parameters
 				for (String paramName : task.getParamNames()) {
-//					List<ValueRef> arg = new ArrayList<ValueRef>();
-//					arg.add(task.getParam(paramName));
+					List<ValueRef> arg = new ArrayList<ValueRef>();
+					arg.add((ValueRef) task.getParam(paramName));
 					newTask.addParam(paramName, task.getParam(paramName));
 				}
 				
