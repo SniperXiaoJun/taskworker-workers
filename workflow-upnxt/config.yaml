@@ -26,7 +26,7 @@ workflows:
             archive.password: admin
             archive.extension: zip
             archive.filetype: application/zip
-            batch.size: 10
+            batch.size: '10'
 
 scheduler:
     class: drm.taskworker.schedule.FairShare
