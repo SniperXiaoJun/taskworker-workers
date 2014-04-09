@@ -72,8 +72,8 @@ public class JoinWorker extends Worker {
 				// copy over parameters
 				for (String paramName : task.getParamNames()) {
 					List<Object> arg = new ArrayList<Object>();
-					arg.add(task.getParam(paramName));
-					newTask.addParam(paramName, task.getParam(paramName));
+					arg.add(task.getParamRef(paramName));
+					newTask.addParam(paramName, arg);
 				}
 				
 				// add the new join queue
