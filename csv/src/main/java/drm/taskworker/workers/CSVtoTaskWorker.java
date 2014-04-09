@@ -60,11 +60,11 @@ public class CSVtoTaskWorker extends Worker {
 			List<String[]> rows = parser.readAll();
 			String[] headers = rows.get(0);
 			int batchSize = 1;
-			try{ 
+//			try{ 
 				batchSize = Integer.valueOf(task.getJobOption("batch.size"));
-			} catch(Exception e) {
-				// keep batchSize == 1
-			}
+//			} catch(Exception e) {
+//				// keep batchSize == 1
+//			}
 
 			logger.info(String.format("Parsed %d records in CSV", rows.size() - 1));
 			int batchNb = 1;
@@ -79,7 +79,8 @@ public class CSVtoTaskWorker extends Worker {
 					for (int r = 0; r < row.length; r++) {
 						document.put(headers[r], row[r]);
 					}
-					newTask.addParam("Doc#"+d, document);
+					int docNb = d + 1;
+					newTask.addParam("Doc#"+docNb, document);
 				}
 				newTask.addParam("BatchNb", batchNb);
 				
