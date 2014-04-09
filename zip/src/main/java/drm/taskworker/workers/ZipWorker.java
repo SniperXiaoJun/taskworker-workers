@@ -61,8 +61,10 @@ public class ZipWorker extends Worker {
 		
 		for(String tag : task.getParamNames()) {
 			if(tag != null && tag.startsWith("Doc#")) {
+				// paramNames for upnxt workflow
 				zip(out, task, tag);
 			} else if(tag != null && tag.equals("arg0")) {
+				// paramNames for other workflows
 				zip(out, task, tag);
 				break;
 			}
