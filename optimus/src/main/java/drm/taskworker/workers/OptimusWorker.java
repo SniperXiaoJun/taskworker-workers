@@ -15,12 +15,30 @@
 
     Administrative Contact: dnet-project-office@cs.kuleuven.be
     Technical Contact: bart.vanbrabant@cs.kuleuven.be
-*/
+ */
 
 package drm.taskworker.workers;
 
+import static drm.taskworker.workers.Constants.PRM_START_FILE;
+import static drm.taskworker.workers.Constants.PRM_START_METHOD;
+import static drm.taskworker.workers.Constants.TYPE_START;
+import static drm.taskworker.workers.Constants.TYPE_STEP;
+import static drm.taskworker.workers.Constants.TYPE_STOP;
+import static drm.taskworker.workers.Constants.PRM_TYPE;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.io.IOUtils;
 
 import drm.taskworker.Worker;
 import drm.taskworker.tasks.ParameterFoundException;
@@ -29,145 +47,141 @@ import drm.taskworker.tasks.TaskResult;
 import drm.taskworker.tasks.ValueRef;
 
 /**
- * The optimus worker coordinates the execution of a computational command. The worker always requires
- * a 'command' to be an argument. 
+ * The optimus worker!
  * 
- * Parameters:
- * 		@param: command The command to execute
- * 		@param: a The start value of the interval
- * 		@param: b The end value of the interval
- * 		@param: d The distance between a and b that indicates we can stop searching
  * 
- * The number of tasks required to search is determined as following
- * 	n = int(abs(a-b)/d)
- * 
- * @author Bart Vanbrabant <bart.vanbrabant@cs.kuleuven.be>
  */
 public class OptimusWorker extends Worker {
+
 	/**
 	 * Creates a new work with the name blob-to-cache
 	 */
 	public OptimusWorker(String workerName) {
 		super(workerName);
 	}
-	
-	public int parseResult(String result) {
-		return Integer.valueOf(result);
-	}
-	
+
+	private Map<UUID, Process> handles = new HashMap<>();
+
 	/**
 	 * Archive the result of the previous task
 	 */
 	@SuppressWarnings("unchecked")
 	public TaskResult work(Task task) {
-		logger.info("Executing");
-		TaskResult result = new TaskResult();
-		
-		Set<String> paramNames = task.getParamNames();
-		
-		String command = null;
-		int a = 0;
-		int b = 0;
-		int d = 0;
-		int iteration = 0;
-		
-		if (paramNames.contains("iteration")) {
-			// we get the results from a join
-			a = Integer.MAX_VALUE;
-			b = 0;
-			List<ValueRef> resultList = null;
-			
-			try {
-				resultList = (List<ValueRef>) task.getParam("result");
-				// extract the iteration number
-				List<ValueRef> iList = (List<ValueRef>) task.getParam("iteration");
-				
-				if (iList.size() <= 0) {
-					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-				}
-				
-				iteration = (Integer)iList.get(0).getValue();
-				
-				// extract the original d parameter
-				List<ValueRef> dList = (List<ValueRef>) task.getParam("d");
-
-				if (dList.size() <= 0) {
-					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-				}
-				
-				d = (Integer)dList.get(0).getValue();
-				
-				// extract the command
-				List<ValueRef> cmdList = (List<ValueRef>) task.getParam("command");
-
-				if (cmdList.size() <= 0) {
-					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-				}
-				command = (String)cmdList.get(0).getValue();
-			} catch (ParameterFoundException e) {
-				return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-			}
-			
-			for (ValueRef value : resultList) {
-				int num;
-				try {
-					String numValue = new String((byte[])value.getValue());
-					logger.info("Got result: " + numValue);
-					num = parseResult(numValue);
-					if (num < a) {
-						a = num;
-					}
-					if (num > b) {
-						b = num;
-					}
-				} catch (ParameterFoundException | NumberFormatException e) {
-				}
-
-			}
-		} else {
-			// initial command
-			try {
-				command = (String)task.getParam("command");
-				a = Integer.valueOf((String)task.getParam("a"));
-				b = Integer.valueOf((String)task.getParam("b"));
-				d = Integer.valueOf((String)task.getParam("d"));
-			} catch (ParameterFoundException e) {
-				return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
-			}
-		}
-		
 		try {
-			int l = Math.abs(a - b);
-			if (l < d) {
-				String report = String.format("a=%d, b=%d, iterations=%d", a,b,iteration);
-				logger.info(String.format("Result is => a=%d, b=%d, iterations=%d", a,b,iteration));
-				// go to the next step
-				Task newTask = new Task(task, this.getNextWorker(task.getJobId()));
-				newTask.addParam("arg0", report.getBytes());
-				result.addNextTask(newTask);
-			} else {
-				iteration++;
-				
-				// start child workers
-				int n_workers = Math.max((int)Math.floor(l/d), 2);
-				
-				for (int i = 0; i < n_workers; i++) {
-					Task newTask = new Task(task, "execute");
-					newTask.addParam("command", command);
-					newTask.addParam("a", a);
-					newTask.addParam("b", b);
-					newTask.addParam("d", d);
-					newTask.addParam("iteration", iteration);
-					result.addNextTask(newTask);
-				}
+			String type = (String) task.getParam(PRM_TYPE);
+
+			switch (type) {
+			case TYPE_START:
+				return start(task, (byte[]) task.getParam(PRM_START_FILE),
+						(String) task.getParam(PRM_START_METHOD));
+			case TYPE_STEP:
+				return step(task, (List<ValueRef>) task.getParam("output"),(List<ValueRef>) task.getParam("name"));
+			case TYPE_STOP:
+				return stop(task);
 			}
-			result.setResult(TaskResult.Result.SUCCESS);
-			
+			TaskResult out = new TaskResult();
+			out.setException(new IllegalArgumentException(type));
+			out.fail();
+			return out;
 		} catch (Exception e) {
-			result.setResult(TaskResult.Result.EXCEPTION);
-			result.setException(e);
+			TaskResult out = new TaskResult();
+			out.setException(e);
+			out.fail();
+			return out;
 		}
 
-		return result;
+	}
+
+	private TaskResult stop(Task task) {
+		//don't wait for kill
+		
+		handles.remove(task.getId()).destroy();
+		return new TaskResult();
+	}
+
+	private TaskResult step(Task task, List<ValueRef> results, List<ValueRef> names) throws IOException, ParameterFoundException {
+		//write out outputs
+		File workdir = new File(task.getJobId().toString());
+		for(int i =0;i<results.size();i++){
+			output(workdir,(byte[])results.get(i).getValue(),(String)names.get(i).getValue());
+		}
+		return stop(task);
+	}
+
+	
+
+	private void output(File workdir, byte[] value, String name) throws IOException {
+		OutputStream os = new FileOutputStream(new File(workdir,name));
+		os.write(value);
+		os.close();
+		
+	}
+
+	private TaskResult start(Task task, byte[] file, String method) throws IOException {
+		
+		File workdir = new File(task.getJobId().toString());
+		if (workdir.exists()) {
+			workdir.mkdir();
+		}
+		
+		File f = new File(workdir,"input");
+		OutputStream out = new FileOutputStream(f);
+		out.write(file);
+		out.close();
+		
+		ProcessBuilder pb = new ProcessBuilder(task.getJobOption("optimus.exe"),method);
+		pb.directory(workdir);
+		
+		Process handle = pb.start();
+		 
+		(new VoidStreamPump(handle.getInputStream())).start();
+		(new VoidStreamPump(handle.getErrorStream())).start();
+		
+		handles.put(task.getJobId(), handle);
+		
+		return waitForIt(task,workdir);
+	}
+
+	private TaskResult waitForIt(Task task,File workdir) throws IOException {
+		File gofile = new File(workdir,task.getJobOption("optimus.flagfile"));
+		while(!gofile.exists()){
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				throw new Error("should not occur",e);
+			}
+		}
+		
+		TaskResult out = new TaskResult();
+		
+		File runfile = new File(workdir,task.getJobOption("optimus.runfile"));
+		BufferedReader br = new BufferedReader(new FileReader(runfile));
+		String line = br.readLine();
+		while(line!=null){
+			
+			out.addNextTask(makeTask(task,workdir,line));
+			
+			line = br.readLine();
+			
+		}
+		br.close();
+		return out;
+	}
+
+	private Task makeTask(Task task, File workdir, String line) throws IOException {
+		String[] parts = line.split("|");
+		String command = parts[0];
+		String inputfile = parts[1];
+		String outputfile = parts[2];
+		
+		FileInputStream fis = new FileInputStream(new File(workdir, inputfile));
+		byte[] outputData = IOUtils.toByteArray(fis);
+		
+		Task out = new Task(task, "execute");
+		out.addParam("command", command);
+		out.addParam("input", outputData);
+		out.addParam("name", outputfile);
+		
+		return task;
 	}
 }

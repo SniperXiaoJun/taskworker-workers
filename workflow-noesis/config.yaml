@@ -1,7 +1,7 @@
 ---
 workers:
-    - {name: execute, class: drm.taskworker.workers.ExecuteWorker, threads: 2, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
-    - {name: optimus, class: drm.taskworker.workers.OptimusWorker, threads: 2, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
+    - {name: execute, class: drm.taskworker.workers.ExecuteArgsWorker, threads: 2, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
+    - {name: optimus, class: drm.taskworker.workers.OptimusWorker2, threads: 1, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
     - {name: archive, class: drm.taskworker.workers.WebdavArchiveWorker, threads: 1, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
     - {name: join, class: drm.taskworker.workers.JoinWorker, threads: 1, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
     - {name: end, class: drm.taskworker.workers.EndWorker, threads: 1, code: "target/noesis-0.4.0-SNAPSHOT-jar-with-dependencies.jar"}
