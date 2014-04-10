@@ -21,10 +21,10 @@ workflows:
         start: csv-to-task
         end: end
         options:
-            archive.url: http://172.16.4.12:8080/repository/default
+            archive.url: http://172.16.4.21:8080/repository/default
             archive.username: admin
             archive.password: admin
-            archive.extension: zip
+            archive.extension: blah.zip
             archive.filetype: application/zip
             batch.size: '10'
 

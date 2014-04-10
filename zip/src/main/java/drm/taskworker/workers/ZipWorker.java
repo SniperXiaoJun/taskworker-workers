@@ -107,7 +107,7 @@ public class ZipWorker extends Worker {
 		// save the files in the zip
 		int i = 0;
 		for (ValueRef ref : data) {
-			out.putNextEntry(new ZipEntry(++i + ".pdf"));
+			out.putNextEntry(new ZipEntry(tag + ++i + ".pdf"));
 			byte[] pdfData = (byte[])ref.getValue();
 			out.write(pdfData);
 		}
