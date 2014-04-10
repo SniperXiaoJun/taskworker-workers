@@ -95,7 +95,7 @@ public class ZipWorker extends Worker {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void zip(ZipOutputStream zipOut, Task task, String tag) throws ParameterFoundException, IOException {
+	private void zip(ZipOutputStream out, Task task, String tag) throws ParameterFoundException, IOException {
 		List<ValueRef> data = null;
 		
 		data = (List<ValueRef>) task.getParam(tag);
@@ -104,10 +104,6 @@ public class ZipWorker extends Worker {
 			logger.warning("empty zip file");
 		}
 			
-		// create the zip stream
-		ByteArrayOutputStream boas = new ByteArrayOutputStream();
-		ZipOutputStream out = new ZipOutputStream(boas);
-
 		// save the files in the zip
 		int i = 0;
 		for (ValueRef ref : data) {

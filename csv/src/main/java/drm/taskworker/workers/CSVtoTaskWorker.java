@@ -89,6 +89,8 @@ public class CSVtoTaskWorker extends Worker {
 			}
 			parser.close();
 			
+			result.setSplit();
+			
 			result.setResult(TaskResult.Result.SUCCESS);
 		} catch (FileNotFoundException e) {
 			result.setResult(TaskResult.Result.EXCEPTION);
