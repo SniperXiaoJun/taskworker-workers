@@ -35,9 +35,12 @@ import org.apache.fop.apps.FopFactory;
 import org.apache.fop.apps.MimeConstants;
 
 import drm.taskworker.Worker;
+import drm.taskworker.monitoring.Metrics;
 import drm.taskworker.tasks.ParameterFoundException;
 import drm.taskworker.tasks.Task;
 import drm.taskworker.tasks.TaskResult;
+
+import dnet.minimetrics.TimerContext;
 
 /**
  * A worker that renders an invoice based
@@ -67,6 +70,7 @@ public class XslFoRenderWorker extends Worker {
 					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
 				}
 
+				TimerContext tc = Metrics.timer("worker.work." + this.getName()).time();
 				try {
 					TransformerFactory tFactory = TransformerFactory
 							.newInstance();
@@ -104,6 +108,7 @@ public class XslFoRenderWorker extends Worker {
 					result.setException(e);
 					return result;
 				}
+				tc.stop();
 			} else if(tag != null && tag.equals("BatchNb")) {
 				try {
 					newTask.addParam("BatchNb", task.getParam("BatchNb"));

@@ -15,12 +15,16 @@
 
 	
 	<dependencies>
-		
 		<dependency>
 			<groupId>org.apache.xmlgraphics</groupId>
 			<artifactId>fop</artifactId>
 			<version>1.0</version>
-		</dependency>		
+		</dependency>
+		<dependency>
+        	<groupId>dnet.monitor.flens</groupId>
+        	<artifactId>minimetrics</artifactId>
+        	<version>0.0.1-SNAPSHOT</version>
+        </dependency>
 	</dependencies>
 
 </project>
