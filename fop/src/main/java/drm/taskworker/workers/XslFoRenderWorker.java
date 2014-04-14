@@ -70,7 +70,7 @@ public class XslFoRenderWorker extends Worker {
 					return result.setResult(TaskResult.Result.ARGUMENT_ERROR);
 				}
 
-				TimerContext tc = Metrics.timer("worker.work." + this.getName()).time();
+				TimerContext tc = Metrics.timer("worker.work.pdf_render").time();
 				try {
 					TransformerFactory tFactory = TransformerFactory
 							.newInstance();
