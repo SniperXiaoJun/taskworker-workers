@@ -19,6 +19,8 @@
 
 package drm.taskworker.workers;
 
+import static drm.taskworker.config.Config.cfg;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,12 +48,16 @@ import drm.taskworker.tasks.TaskResult;
 public class JoinWorker extends Worker {
 	protected static final Logger logger = Logger.getLogger(JoinWorker.class
 			.getCanonicalName());
+	
+	private final boolean localCache;
+	private Map<UUID, Integer> joinCache = new HashMap<>(); 
 
 	/**
 	 * Creates a new worker
 	 */
 	public JoinWorker(String workerName) {
 		super(workerName);
+		this.localCache = Boolean.valueOf(cfg().getProperty("taskworker.join.local", "false"));
 	}
 
 	@Override
@@ -71,10 +77,21 @@ public class JoinWorker extends Worker {
 			joinQueue = joinQueue.substring(0, joinQueue.length() - 37);
 
 			// decrement the join counter
-			Job.decrementJoin(task.getJobId(), joinId);
-
-			// get its current value
-			int joinValue = Job.getJoinCount(task.getJobId(), joinId);
+			int joinValue = -1;
+			if (!this.localCache) {
+				Job.decrementJoin(task.getJobId(), joinId);
+	
+				// get its current value
+				joinValue = Job.getJoinCount(task.getJobId(), joinId);
+			} else {
+				if (!this.joinCache.containsKey(joinId)) {
+					joinValue = Job.getJoinCount(task.getJobId(), joinId);
+				} else {
+					joinValue = this.joinCache.get(joinId);
+				}
+				joinValue--;
+				this.joinCache.put(joinId, joinValue);
+			}
 			logger.info("Retrieved join counter " + joinValue + " for job " + task.getJobId().toString());
 
 			// register this task as a parent of the future joined task
@@ -115,6 +132,12 @@ public class JoinWorker extends Worker {
 
 				// return the new task
 				result.addNextTask(newTask);
+				
+				if (this.localCache) {
+					joinValue = Job.getJoinCount(task.getJobId(), joinId);
+					Job.storeJoin(task.getJobId(), joinId, -joinValue);
+					this.joinCache.remove(joinId);
+				}
 			}
 
 		} catch (ParameterFoundException e) {
