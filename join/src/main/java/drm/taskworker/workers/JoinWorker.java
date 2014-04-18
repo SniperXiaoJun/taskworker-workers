@@ -35,12 +35,12 @@ import drm.taskworker.tasks.TaskResult;
 /**
  * A generic worker that joins a workflow by collecting all tasks of a workflow
  * and sending out a new task with all previous tasks in it.
- * 
+ *
  * This worker collects all arguments of the joined tasks and sends out a new
  * task with the same arguments in list form.
- * 
+ *
  * This worker can only be used once in a workflow with the same worker name.
- * 
+ *
  * @author Bart Vanbrabant <bart.vanbrabant@cs.kuleuven.be>
  */
 public class JoinWorker extends Worker {
@@ -75,6 +75,7 @@ public class JoinWorker extends Worker {
 
 			// get its current value
 			int joinValue = Job.getJoinCount(task.getJobId(), joinId);
+			logger.info("Retrieved join counter " + joinValue + " for job " + task.getJobId().toString());
 
 			// register this task as a parent of the future joined task
 			Task.saveParent(task.getJobId(), joinId, task.getId());
